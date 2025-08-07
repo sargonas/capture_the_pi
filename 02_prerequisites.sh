@@ -29,18 +29,28 @@ echo "Removing file protection..."
 sudo chattr -i /home/pi/honeypot_ctf/ctf_scorer.py 2>/dev/null || true
 sudo chattr -i /home/pi/.opencanary.conf 2>/dev/null || true
 sudo chattr -i /etc/supervisor/conf.d/honeypot.conf 2>/dev/null || true
+find /home/pi/honeypot_ctf -type f -exec sudo chattr -i {} \; 2>/dev/null || true
 
-# Stop services
+# Stop services more aggressively
 echo "Stopping services..."
 sudo supervisorctl stop honeypot:* 2>/dev/null || true
+sudo pkill -f opencanary 2>/dev/null || true
+sudo pkill -f ctf_scorer 2>/dev/null || true
 sudo systemctl stop hostapd 2>/dev/null || true
 sudo systemctl stop dnsmasq 2>/dev/null || true
+
+# Wait for processes to stop
+sleep 2
 
 # Remove old installations
 echo "Removing old files..."
 sudo rm -rf /home/pi/honeypot_ctf 2>/dev/null || true
+sudo rm -rf /var/lib/honeypot_ctf 2>/dev/null || true
+sudo rm -rf /var/log/honeypot 2>/dev/null || true
 sudo rm -f /home/pi/.opencanary.conf 2>/dev/null || true
 sudo rm -f /etc/supervisor/conf.d/honeypot.conf 2>/dev/null || true
+sudo rm -f /tmp/opencanary.log 2>/dev/null || true
+sudo rm -f /var/tmp/opencanary.log 2>/dev/null || true
 
 # Clean web directory
 sudo rm -rf /var/www/html/* 2>/dev/null || true
@@ -48,9 +58,14 @@ sudo rm -rf /var/www/html/* 2>/dev/null || true
 # Reset iptables (if set)
 sudo iptables -F 2>/dev/null || true
 sudo iptables -X 2>/dev/null || true
+sudo iptables -t nat -F 2>/dev/null || true
 
 # Remove cron jobs (integrity checking)
 crontab -l 2>/dev/null | grep -v "integrity_check" | crontab - 2>/dev/null || true
+
+# Update supervisor to remove stale configs
+sudo supervisorctl reread 2>/dev/null || true
+sudo supervisorctl update 2>/dev/null || true
 
 echo "Cleanup complete"
 
