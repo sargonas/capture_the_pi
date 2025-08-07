@@ -18,10 +18,17 @@
 ### Reset Options
 - `00_nuke_reset.sh` - **NUCLEAR OPTION** - Complete removal of everything
 
+### WiFi Troubleshooting Tools
+- `check_wifi_compatibility.sh` - **Check WiFi adapter compatibility BEFORE installing**
+- `wifi_troubleshoot.sh` - **Diagnose WiFi AP issues after installation**
+
 ## Usage
 
 ### Fresh Installation
 ```bash
+# RECOMMENDED: Check WiFi compatibility first
+./check_wifi_compatibility.sh
+
 # Standard install
 ./01_main.sh
 
@@ -86,8 +93,15 @@ sudo supervisorctl status
 1. **Permission Denied**: Make sure scripts are executable (`chmod +x *.sh`)
 2. **SSH Locked Out**: Scripts move real SSH to port 2022 - connect with `ssh -p 2022 pi@<ip>`
 3. **Services Won't Start**: Check logs with `/home/pi/honeypot_ctf/scripts/manage.sh`
-4. **WiFi AP Not Working**: Ensure USB WiFi adapter is connected as wlan1
+4. **WiFi AP Not Working**: 
+   - Run `./wifi_troubleshoot.sh` to diagnose
+   - Check USB WiFi adapter supports AP mode
+   - Try `./check_wifi_compatibility.sh` before installing
 5. **Scores Not Working**: Check `/tmp/opencanary.log` exists and is writable
+6. **hostapd Failed**: 
+   - Common with cheap WiFi adapters that don't support AP mode
+   - Installation will continue without WiFi (wired network still works)
+   - Use `./wifi_troubleshoot.sh` for detailed diagnosis
 
 ## File Structure Created
 ```

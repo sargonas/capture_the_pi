@@ -106,6 +106,15 @@ if [ -f /etc/dhcpcd.conf ]; then
     sudo sed -i '/# Honeypot AP Interface/,+3d' /etc/dhcpcd.conf 2>/dev/null || true
 fi
 
+# Reset wlan1 interface
+if ip link show wlan1 >/dev/null 2>&1; then
+    sudo ip link set wlan1 down 2>/dev/null || true
+    sudo ip addr flush dev wlan1 2>/dev/null || true
+fi
+
+# Kill any wpa_supplicant processes that might interfere
+sudo pkill wpa_supplicant 2>/dev/null || true
+
 # Reset IP forwarding (comment out our line)
 if [ -f /etc/sysctl.conf ]; then
     sudo sed -i 's/^net.ipv4.ip_forward=1/#net.ipv4.ip_forward=1/' /etc/sysctl.conf 2>/dev/null || true
