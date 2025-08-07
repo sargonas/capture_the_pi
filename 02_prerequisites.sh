@@ -1,15 +1,64 @@
 #!/bin/bash
 
-# MODULE 0a: Move Real SSH to Port 2022
-# Run this BEFORE the main installation to free up port 22 for the honeypot
+# MODULE 1: Prerequisites - Cleanup & SSH Setup
+# Combines old modules: 00_cleanup.sh + 00_setup_sh.sh
 
-echo "[Module 0a] Moving real SSH to port 2022..."
+set -e
 
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m'
+
+print_status() { echo -e "${GREEN}[✓]${NC} $1"; }
+print_error() { echo -e "${RED}[✗]${NC} $1"; }
+print_warning() { echo -e "${YELLOW}[!]${NC} $1"; }
+
+echo "[Module 2] Prerequisites - Cleanup and SSH Setup"
+
+# ==========================================
+# CLEANUP PREVIOUS INSTALLATION
+# ==========================================
+
+echo "[Module 2] Cleaning up previous installation..."
+
+# Remove immutable flags
+echo "Removing file protection..."
+sudo chattr -i /home/pi/honeypot_ctf/ctf_scorer.py 2>/dev/null || true
+sudo chattr -i /home/pi/.opencanary.conf 2>/dev/null || true
+sudo chattr -i /etc/supervisor/conf.d/honeypot.conf 2>/dev/null || true
+
+# Stop services
+echo "Stopping services..."
+sudo supervisorctl stop honeypot:* 2>/dev/null || true
+sudo systemctl stop hostapd 2>/dev/null || true
+sudo systemctl stop dnsmasq 2>/dev/null || true
+
+# Remove old installations
+echo "Removing old files..."
+sudo rm -rf /home/pi/honeypot_ctf 2>/dev/null || true
+sudo rm -f /home/pi/.opencanary.conf 2>/dev/null || true
+sudo rm -f /etc/supervisor/conf.d/honeypot.conf 2>/dev/null || true
+
+# Clean web directory
+sudo rm -rf /var/www/html/* 2>/dev/null || true
+
+# Reset iptables (if set)
+sudo iptables -F 2>/dev/null || true
+sudo iptables -X 2>/dev/null || true
+
+# Remove cron jobs (integrity checking)
+crontab -l 2>/dev/null | grep -v "integrity_check" | crontab - 2>/dev/null || true
+
+echo "Cleanup complete"
+
+# ==========================================
+# SSH SETUP - MOVE TO PORT 2022
+# ==========================================
+
+echo "[Module 2] Moving real SSH to port 2022..."
 
 # Check if SSH is currently on port 22
 if sudo netstat -tlnp | grep -q ":22.*sshd"; then
@@ -108,8 +157,8 @@ if sudo ufw status | grep -q "Status: active"; then
 fi
 
 echo ""
-echo -e "${GREEN}[Module 0a] SSH setup complete!${NC}"
+echo -e "${GREEN}[Module 2] Prerequisites complete!${NC}"
 echo "  Administration SSH: Port 2022"
-echo "  CTF Honeypot SSH: Port 22 (will be configured by OpenCanary)"
+echo "  CTF Honeypot SSH: Port 22 (available for OpenCanary)"
 echo ""
 echo -e "${YELLOW}Remember to always connect with: ssh -p 2022 pi@<ip>${NC}"

@@ -1,6 +1,15 @@
 #!/bin/bash
 
-# MODULE 4: Create CTF Scorer
+# MODULE 3: Application Setup - CTF Scorer & OpenCanary Configuration
+# Combines old modules: 04_scorer.sh + 05_config.sh
+
+set -e
+
+echo "[Module 4] Application Setup - CTF Scorer & OpenCanary Configuration"
+
+# ==========================================
+# CREATE CTF SCORER
+# ==========================================
 
 echo "[Module 4] Creating CTF scorer..."
 
@@ -18,19 +27,22 @@ from datetime import datetime
 class HoneypotCTF:
     def __init__(self):
         self.db_path = "/var/lib/honeypot_ctf/scores.db"
-        self.log_path = "/var/tmp/opencanary.log"
+        self.log_path = "/tmp/opencanary.log"
         self.setup_database()
         self.scoring_rules = {
-            "port_scan_detected": 10,
-            "service_probe": 20,
-            "ssh_login_attempt": 30,
-            "http_request": 25,
-            "ftp_login_attempt": 35,
-            "telnet_login_attempt": 40,
-            "mysql_connection": 45,
-            "redis_connection": 50,
-            "first_blood": 200,
-            "persistence": 150,
+            # OpenCanary actual log types
+            "ssh.login_attempt": 30,
+            "ftp.login_attempt": 35, 
+            "telnet.login_attempt": 40,
+            "http.request": 25,
+            "mysql.login_attempt": 45,
+            "redis.command": 50,
+            "portscan.nmap.null_scan": 10,
+            "portscan.nmap.syn_scan": 10,
+            "portscan.nmap.xmas_scan": 10,
+            "portscan.nmap.fin_scan": 10,
+            # Generic fallback
+            "unknown": 5,
         }
         self.flags = {
             # Easy flags
@@ -133,10 +145,17 @@ class HoneypotCTF:
     
     def process_log_entry(self, log_line):
         try:
+            if not log_line.strip():
+                return
+                
             data = json.loads(log_line)
             src_ip = data.get('src_host', '127.0.0.1')
             
+            # Debug: log all events for troubleshooting
+            print(f"DEBUG: Processing log entry: {log_line[:200]}...")
+            
             if src_ip in ['127.0.0.1', '::1']:
+                print(f"DEBUG: Ignoring localhost traffic from {src_ip}")
                 return
                 
             player_id = self.get_or_create_player(src_ip)
@@ -146,10 +165,12 @@ class HoneypotCTF:
             details = json.dumps(data)
             
             self.award_points(player_id, event_type, points, details)
-            print(f"Awarded {points} points to {src_ip} for {event_type}")
+            print(f"✓ Awarded {points} points to {src_ip} for {event_type}")
             
+        except json.JSONDecodeError as e:
+            print(f"JSON parsing error: {e} - Line: {log_line[:100]}...")
         except Exception as e:
-            print(f"Error processing log: {e}")
+            print(f"Error processing log: {e} - Line: {log_line[:100]}...")
     
     def get_leaderboard(self):
         conn = sqlite3.connect(self.db_path)
@@ -267,4 +288,77 @@ SCORER_EOF
 
 chmod +x /home/pi/honeypot_ctf/ctf_scorer.py
 
-echo "[Module 4] Scorer created"
+echo "CTF scorer created"
+
+# ==========================================
+# CREATE OPENCANARY CONFIGURATION
+# ==========================================
+
+echo "[Module 4] Creating OpenCanary configuration..."
+
+# Port configuration - SSH should be on 22 since we moved real SSH to 2022
+# HTTP should be on 80 since we're creating a honeypot
+SSH_PORT=22
+HTTP_PORT=80
+
+cat > /home/pi/.opencanary.conf << CONFIG_EOF
+{
+    "device.node_id": "honeypot-ctf-01",
+    "ip.ignorelist": ["127.0.0.1"],
+    "git.enabled": false,
+    "git.port": 9418,
+    "ftp.enabled": true,
+    "ftp.port": 21,
+    "ftp.banner": "FTP Server Ready",
+    "http.enabled": true,
+    "http.port": ${HTTP_PORT},
+    "http.banner": "Apache/2.4.41 (Ubuntu)",
+    "http.skin": "basicLogin",
+    "ssh.enabled": true,
+    "ssh.port": ${SSH_PORT},
+    "ssh.version": "SSH-2.0-OpenSSH_7.6p1 Ubuntu-4ubuntu0.3",
+    "telnet.enabled": true,
+    "telnet.port": 23,
+    "telnet.banner": "Ubuntu 20.04 LTS",
+    "mysql.enabled": true,
+    "mysql.port": 3306,
+    "mysql.banner": "5.7.28",
+    "redis.enabled": true,
+    "redis.port": 6379,
+    "logger": {
+        "class": "PyLogger",
+        "kwargs": {
+            "formatters": {
+                "plain": {
+                    "format": "%(message)s"
+                }
+            },
+            "handlers": {
+                "file": {
+                    "class": "logging.FileHandler",
+                    "filename": "/tmp/opencanary.log"
+                }
+            }
+        }
+    },
+    "portscan.enabled": true,
+    "portscan.synrate": 5,
+    "portscan.nmaposrate": 5,
+    "portscan.lorate": 3,
+    "smb.enabled": false,
+    "rdp.enabled": false,
+    "sip.enabled": false,
+    "snmp.enabled": false,
+    "ntp.enabled": false,
+    "tftp.enabled": false,
+    "tcpbanner.enabled": false,
+    "vnc.enabled": false,
+    "mssql.enabled": false
+}
+CONFIG_EOF
+
+echo "[Module 4] Application setup complete"
+echo "  CTF scorer: created"
+echo "  OpenCanary config: created"
+echo "  SSH honeypot port: ${SSH_PORT}"
+echo "  HTTP honeypot port: ${HTTP_PORT}"

@@ -1,22 +1,15 @@
 #!/bin/bash
 
-# MODULE 6: Deploy Enhanced CTF Flags
+# MODULE 5: Content Deployment - CTF Flags
 
-echo "[Module 6] Deploying enhanced CTF flags..."
+set -e
+
+echo "[Module 5] Content Deployment - CTF Flags"
+
+echo "[Module 5] Deploying enhanced CTF flags..."
 
 # Create web directories
-sudo mkdir -p /var/www/html/admin
-sudo mkdir -p /var/www/html/config
-sudo mkdir -p /var/www/html/backup
-sudo mkdir -p /var/www/html/.hidden
-sudo mkdir -p /var/www/html/api/v1
-sudo mkdir -p /var/www/html/uploads
-sudo mkdir -p /var/www/html/logs
-sudo mkdir -p /var/www/html/temp
-sudo mkdir -p /var/www/html/dev
-sudo mkdir -p /var/www/html/old
-sudo mkdir -p /var/www/html/test
-sudo mkdir -p /var/www/html/maintenance
+sudo mkdir -p /var/www/html/{admin,config,backup,.hidden,api/v1,uploads,logs,temp,dev,old,test,maintenance,.docker,.kube,.git/logs}
 
 # === EASY FLAGS (100-200 points) ===
 
@@ -72,7 +65,6 @@ echo "FLAG{temp_file_exposure}" | sudo tee -a /var/www/html/temp/session_abc123.
 # === HARD FLAGS (500-700 points) ===
 
 # Flag 12: Git repository exposed
-sudo mkdir -p /var/www/html/.git/logs
 echo "FLAG{git_exposure}" | sudo tee /var/www/html/.git/config > /dev/null
 echo "commit abc123def456 - Added admin credentials" | sudo tee /var/www/html/.git/logs/HEAD > /dev/null
 echo "Username: admin" | sudo tee -a /var/www/html/.git/logs/HEAD > /dev/null
@@ -139,11 +131,9 @@ echo "key=FLAG{encryption_key_exposure}" | sudo tee -a /var/www/html/config/app.
 echo "iv=1234567890abcdef" | sudo tee -a /var/www/html/config/app.ini > /dev/null
 
 # Flag 21: Docker secrets
-sudo mkdir -p /var/www/html/.docker
 echo "registry.password=FLAG{docker_secrets}" | sudo tee /var/www/html/.docker/config.json > /dev/null
 
 # Flag 22: Kubernetes config
-sudo mkdir -p /var/www/html/.kube
 echo "apiVersion: v1" | sudo tee /var/www/html/.kube/config > /dev/null
 echo "kind: Config" | sudo tee -a /var/www/html/.kube/config > /dev/null
 echo "# FLAG{kubernetes_config}" | sudo tee -a /var/www/html/.kube/config > /dev/null
@@ -171,7 +161,7 @@ echo "}" | sudo tee -a /var/www/html/welcome.txt > /dev/null
 # FLAG{steganography} - first letter of each line
 
 # Flag 25: Reverse engineering required
-echo '{"data": "7B2274657874223A22524C424F65336C6A625856796558526C65575A3058326C7A6647397759576C754F6E3164222C22666C6167223A2246524C4245652D395247657232664A65314D227D"}' | sudo tee /var/www/html/api/encrypted_data.json > /dev/null
+echo '{"data": "7B2274657874223A22524C424F65336C6A625856796558526C65575A3058326C7A6647397159576C754F6E3164222C22666C6167223A2246524C4245652D395247657232664A65314D227D"}' | sudo tee /var/www/html/api/encrypted_data.json > /dev/null
 
 # Set permissions for all web files
 sudo chown -R www-data:www-data /var/www/html 2>/dev/null || sudo chown -R $USER:$USER /var/www/html
@@ -182,7 +172,7 @@ sudo chmod 644 /var/www/html/config/database.conf
 sudo chmod 644 /var/www/html/logs/access.log
 sudo chmod 644 /var/www/html/.env
 
-echo "[Module 6] Enhanced flags deployed - 25 flags total!"
+echo "[Module 5] Enhanced flags deployed - 25 flags total!"
 echo "  Easy: 5 flags (100-200 pts each)"
 echo "  Medium: 7 flags (250-400 pts each)" 
 echo "  Hard: 8 flags (500-700 pts each)"

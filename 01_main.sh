@@ -29,19 +29,14 @@ echo ""
 
 # Check all modules exist
 MODULES=(
-    "00_cleanup.sh"
-    "00_setup_ssh.sh"
-    "02_system.sh"
-    "03_python.sh"
-    "04_scorer.sh"
-    "05_config.sh"
-    "06_flags.sh"
-    "07_supervisor.sh"
-    "08_scripts.sh"
-    "09_start.sh"
-    "10_network.sh"
-    "11_security.sh"
-    "12_validate.sh"
+    "02_prerequisites.sh"
+    "03_environment.sh"
+    "04_application.sh"
+    "05_content.sh"
+    "06_network.sh"
+    "07_security.sh"
+    "08_services.sh"
+    "09_finalize.sh"
 )
 
 print_status "Checking modules..."
